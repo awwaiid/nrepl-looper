@@ -22,16 +22,24 @@
         doall)))
 
 
-; Example datastructure for a loop
-; It is an atom so that it can be modified during playback
 (def loop-1
+  "Example datastructure for a loop
+  It is an atom so that it can be modified during playback
+
+  length: How long the loop goes. If events happen after this then they will be mod'ed to fit the timeline
+
+  start-time: Used during recording to know the offset of a 'now' event
+
+  events: vector of events
+  offset: offset is milliseconds from the start of the loop
+  cmd: a string that will be eval'd"
   (atom
-    {:length 4000 ; Longer will be mod
+    {:length 4000 ; Events after this will be mod'ed
      :start-time 1426700231396 ; unix milliseconds
-     :events [:offset 0    :cmd "piano 60"
-              :offset 1000 :cmd "piano 60"
-              :offset 2000 :cmd "piano 63"
-              :offset 3000 :cmd "piano 65"]}))
+     :events [{:offset 0    :cmd "(piano 60)"}
+              {:offset 1000 :cmd "(piano 60)"}
+              {:offset 2000 :cmd "(piano 63)"}
+              {:offset 3000 :cmd "(piano 65)"}]}))
 
 (defn add-event [loop offset cmd]
   (swap! loop update-in [:events]
@@ -71,12 +79,13 @@
       (println "events:" (@loop :events))
       (repl-execute options form))))
 
-(defn rec-repl []
-  (let [loop (atom {:start-time (now) :events []})]
-    (reply.eval-modes.standalone/main
-      {:ns 'looper.core
-       :loop loop})
-    (swap! loop update-in [:events] #(subvec % 1)) ; First thing is some REPL junk, remove
-    (swap! loop conj {:length (- (now) (@loop :start-time))})
-    loop))
+; TODO: switch this to patch and talk to our own server
+; (defn rec-repl
+;   [& {:keys [loop]
+;       :or {loop (atom {:start-time (now) :events []})}}]
+;   (reply.eval-modes.standalone/main {:loop loop})
+;   ; First thing is some REPL junk, remove
+;   (swap! loop update-in [:events] #(subvec % 1))
+;   (swap! loop #(merge {:length (- (now) (@loop :start-time))} %))
+;   loop)
 
