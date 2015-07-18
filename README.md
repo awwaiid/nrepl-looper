@@ -1,17 +1,47 @@
-# looper
+# repl-looper
 
-Experiment with a command-line looper!
+A funky looper pedal... for a REPL. In this case nREPL, Clojure, Overtone is the playground.
 
-# TODO
+Unlike other loopers in which a loop is opaque, here each loop is a data structure with individual events that can be manipulated.
 
-Turn this into nREPL middleware, similar to
-https://github.com/jonase/nrepl-transcript/blob/master/src/nrepl_transcript/file.clj
+# Loop Data Structure
 
-The idea is to allow anything to connect to this server, and then start a special command that intercepts and records the commands and timing.
+```clojure
+(def loop-1
 
-It should also have access to the current loop and past loops? hmm.
+  "Example datastructure for a loop
+  It is an atom so that it can be modified during playback.
 
-Then clients connect to this server as their looper, and can do all the things -- record loops, start/stop loops, edit loops. The server itself would be responsible for playing the music for now.
+  length: How long the loop goes. If events happen after this then they will be
+  mod'ed to fit the timeline
 
-So then we can have a GUI that connects to this, sending the commands and coordinating the overall loops.
+  start-time: Used during recording to know the offset of a 'now' event
+
+  events: vector of events
+
+  offset: offset is milliseconds from the start of the loop
+  cmd: a string that will be eval'd"
+
+  (atom
+    {:length 4000 ; Events after this will be mod'ed
+     :start-time 1426700231396 ; unix milliseconds
+     :events [{:offset 0    :cmd "(piano 60)"}
+              {:offset 1000 :cmd "(piano 60)"}
+              {:offset 2000 :cmd "(piano 63)"}
+              {:offset 3000 :cmd "(piano 65)"}]}))
+```
+
+# nREPL Middleware
+
+The current incarnation of this is some middleware for nREPL. It's a bit mind-twisty, but the idea is that you're using your repl like normal, but can issue some commands that get intercepted by the middleware. One command is to start recording, another to stop, and another to play a loop. During recording the middleware captures all the stuff you do, including timing.
+
+# TODO / NOTES
+
+* Try to eliminate the dependency on overtone, switch to at-at directly
+* Simplify the middleware in any way possible
+* Visualize/Manipulate the loops
+    * Maybe a cool web interface with touch screen to manipulate
+* Right now all is based on millisecond time offsets -- maybe offer beats/bars
+    * This might make quantizing easy
+
 
