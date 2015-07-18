@@ -6,6 +6,10 @@
     [jline "2.11"]
     [ruiyun/tools.timer "1.0.1"]
     [org.clojure/tools.nrepl "0.2.8"]
+    [debugger "0.1.7"]
   ]
+  :jvm-opts ^:replace []
+  :repl-options {:nrepl-middleware
+                 [looper.middleware/looper-wrapper]}
   ; :main looper.core
 )
