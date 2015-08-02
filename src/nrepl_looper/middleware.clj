@@ -1,6 +1,5 @@
-(ns looper.middleware
+(ns nrepl-looper.middleware
   (:require [clojure.tools.nrepl.transport :as transport]
-            ; [looper.core :as looper]
             [overtone.at-at :as at-at])
   (:use [clojure.tools.nrepl.middleware
          :as middleware
@@ -13,15 +12,18 @@
   (with-open [wrtr (writer "log.txt" :append true)]
     (.write wrtr (clojure.string/join " " (conj msg "\n")))))
 
-;;Scheduled thread pool (created by at-at) which is to be used by default for
-;;all scheduled musical functions (players).
+; Adopted from Overtone
+; Scheduled thread pool (created by at-at) which is to be used by default for
+; all scheduled musical functions (players).
 (defonce player-pool (at-at/mk-pool))
 
+; Adopted from Overtone
 (defn now
   "Returns the current time in ms"
   []
   (System/currentTimeMillis))
 
+; Adopted from Overtone
 (defn after-delay
   "Schedules fun to be executed after ms-delay milliseconds. Pool
   defaults to the player-pool."
@@ -29,6 +31,7 @@
   ([ms-delay fun description]
      (at-at/at (+ (now) ms-delay) fun player-pool :desc description)))
 
+; Adopted from Overtone
 (defn apply-at
   "Scheduled function appliction. Works identically to apply, except
    that it takes an additional initial argument: ms-time. If ms-time is
@@ -127,7 +130,7 @@
   (let [msg {:transport dummy-transport
              :op "eval"
              :session session
-             :code "(reset! looper.middleware/handler-ns *ns*)"
+             :code "(reset! nrepl-looper.middleware/handler-ns *ns*)"
              }]
     (logr "Going to call the handler with:" msg)
     (handler msg)
@@ -190,7 +193,7 @@
   (logr "looper-eval-handler msg:" msg)
   (handler msg))
 
-(defn looper-wrapper [handler]
+(defn wrap-looper [handler]
   (fn [{:keys [op code transport] :as msg}]
     (if (and (= op "eval") (not= code ""))
       (let [input (read-string code)]
@@ -199,11 +202,8 @@
           (looper-eval-handler handler msg)))
       (handler msg))))
 
-(set-descriptor! #'looper-wrapper
-                 {
-                  :requires #{"session"}
-                  :expects #{"eval"}
-                  :handles {"looper-wrapper"
-                            {:doc "Loop stuff"}}})
+(set-descriptor!
+  #'wrap-looper {:requires #{"session"}
+                 :expects #{"eval"}})
 
 
