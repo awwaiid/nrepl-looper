@@ -1,4 +1,4 @@
-# repl-looper
+# nrepl-looper
 
 A funky looper pedal... for a REPL. In this case nREPL, Clojure, Overtone is the playground.
 
