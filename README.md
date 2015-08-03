@@ -1,8 +1,6 @@
 # nrepl-looper
 
-A funky looper pedal... for a REPL. In this case nREPL, Clojure, Overtone is the playground.
-
-Unlike other loopers in which a loop is opaque, here each loop is a data structure with individual events that can be manipulated.
+A funky looper pedal... for a REPL. In this case nREPL (ala Clojure). The idea is to use this with Overtone. Unlike other loopers in which a loop is opaque, here each loop is a data structure with individual events that can be manipulated while the loop is running.
 
 # Loop Data Structure
 
@@ -37,7 +35,6 @@ The current incarnation of this is some middleware for nREPL. It's a bit mind-tw
 
 # TODO / NOTES
 
-* Try to eliminate the dependency on overtone, switch to at-at directly
 * Simplify the middleware in any way possible
 * Visualize/Manipulate the loops
     * Maybe a cool web interface with touch screen to manipulate

@@ -69,23 +69,39 @@
       (after-delay delay-time #(apply f (#'clojure.core/spread args))))))
 
 (defn empty-loop []
-  (atom {:start-time (now) :events []}))
+  (atom {:events []}))
 
 (defonce recording-loop (atom false))
 
 (defn start-recording [loop]
   (logr "Starting recording:" loop)
-  (swap! loop assoc :start-time (now))
+  (if (not (@loop :start-time))
+    (swap! loop assoc :start-time (now)))
   (reset! recording-loop loop))
 
 (defn stop-recording []
   (let [length (- (now) (@@recording-loop :start-time))]
-    (swap! @recording-loop assoc :length length)
+    (if (not (@@recording-loop :length))
+      (swap! @recording-loop assoc :length length))
     (reset! recording-loop false)))
 
+(def dummy-transport
+  (reify Transport
+    (recv [this] (logr "RECV:" this))
+    (recv [this timeout] (logr "RECV-TIMEOUT:" this))
+    (send [this resp] (logr "SEND:" resp))))
+
+; Er... maybe we need to inject the session also
 (defn my-eval [repl-eval cmd]
+  (logr "my-eval...")
   (logr "my-eval" "cmd:" cmd)
-  (repl-eval cmd))
+  ; (repl-eval cmd))
+  (let [msg {:transport dummy-transport
+             :op "eval"
+             :code cmd
+             :id (uuid)
+             }]
+    (repl-eval msg)))
 
 (defn play-repl-event [start-time length event repl-eval]
   (let [offset (mod (event :offset) length)
@@ -100,9 +116,10 @@
 
 (defn play-repl-loop [rloop repl-eval]
   (logr "rloop:" rloop "repl-eval:" repl-eval)
+  (swap! rloop assoc :start-time (now))
   (let [events (@rloop :events)
         length (@rloop :length)
-        start-time (now)]
+        start-time (@rloop :start-time)]
     (logr "play-repl-loop events:" events)
     (play-repl-events-at events start-time length repl-eval)
     (apply-at (+ start-time length) play-repl-loop [rloop repl-eval])
@@ -113,16 +130,10 @@
   (logr "loop content:" @loop)
   (play-repl-loop loop handler))
 
-(def dummy-transport
-  (reify Transport
-    (recv [this] (logr "RECV:" this))
-    (recv [this timeout] (logr "RECV-TIMEOUT:" this))
-    (send [this resp] (logr "SEND:" resp))))
-
-(def handler-ns (atom false))
 
 ; Right now this is done via a shared var, waiting for the other thread to set
 ; it. I hope there is a better way, but I don't know it :)
+(def handler-ns (atom false))
 (defn get-ns
   "Get the namespace from the eval handler."
   [handler session]
@@ -174,6 +185,9 @@
   "Possibly record evals into an active loop"
   [handler msg]
   (if @recording-loop
+    ; To simplify, we'll just add the code
+    ; If we wanted to be fancy, we'd add a complete msg
+    (add-event-now @recording-loop (msg :code)))
     ; This adds a fake transport to the message
     ; In other words -- all output gets thrown away!
     ; These are "REL" not "REPL" :)
@@ -187,8 +201,8 @@
     ;            :code (msg :code)
     ;            ; :id (uuid)
     ;            }]
-    (let [msg (assoc msg :transport dummy-transport)]
-      (add-event-now @recording-loop msg)))
+    ; (let [msg (assoc msg :transport dummy-transport)]
+    ;   (add-event-now @recording-loop msg)))
   (logr "looper-eval-handler:" handler)
   (logr "looper-eval-handler msg:" msg)
   (handler msg))
